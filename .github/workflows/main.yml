@@ -1,5 +1,5 @@
 name: Build Standalone Exe
-on: workflow_dispatch # Allows you to click a button to run it
+on: workflow_dispatch
 
 jobs:
   build:
@@ -13,11 +13,19 @@ jobs:
           node-version: '20'
           
       - name: Install Dependencies
-        run: npm install
+        # 'npm ci' is faster and cleaner for builds than 'npm install'
+        run: npm ci
+        
+      - name: Build Project
+        # We must compile the TypeScript code before packaging!
+        # This creates the javascript files in the /dist folder
+        run: npm run build
         
       - name: Build Executable
-        # Uses Vercel's pkg to bundle the app + node runtime into one file
-        run: npx pkg . --targets node20-win-x64 --output gemini.exe --public
+        # 1. We use @yao-pkg/pkg because the original 'pkg' doesn't support Node 20
+        # 2. We explicitly point to the built CLI entry point
+        # 3. We add --compress options to keep the file size smaller
+        run: npx @yao-pkg/pkg packages/cli/dist/index.js --targets node20-win-x64 --output gemini.exe --public
         
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
